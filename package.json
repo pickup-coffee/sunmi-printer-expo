@@ -1,0 +1,52 @@
+{
+  "name": "sunmi-printer-expo",
+  "version": "1.0.0",
+  "description": "Expo module for Sunmi thermal printers integration",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "source": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf lib",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run clean && npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "example": "cd example && npm start"
+  },
+  "keywords": [
+    "expo",
+    "sunmi",
+    "printer",
+    "thermal-printer",
+    "react-native",
+    "android",
+    "pos-printer"
+  ],
+  "author": "elfort6@gmail.com",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/elfort6/sunmi-printer-expo.git"
+  },
+  "files": [
+    "lib",
+    "android",
+    "expo-module.config.json",
+    "README.md",
+    "README-en.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "expo": ">=49.0.0",
+    "expo-modules-core": ">=1.5.0",
+    "react": ">=18.0.0",
+    "react-native": ">=0.70.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-native": "^0.72.0",
+    "expo-modules-core": "^3.0.25",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.0.0"
+  }
+}
