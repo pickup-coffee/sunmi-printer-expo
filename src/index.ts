@@ -26,6 +26,12 @@ export async function lineWrap(lines: number): Promise<void> {
   return await SunmiPrinterModule.lineWrap(lines);
 }
 
+// Single-line two-column layout (e.g. item name + price) — column widths are computed
+// natively from the printer's actual reported paper width, not guessed in JS.
+export async function printRow(left: string, right: string, boldLeft?: boolean): Promise<void> {
+  return await SunmiPrinterModule.printRow(left, right, boldLeft ?? null);
+}
+
 // A visible rule (SOLID/DOTTED), unlike lineWrap which is blank spacing.
 export async function printDivider(style: 'solid' | 'dotted' = 'solid'): Promise<void> {
   return await SunmiPrinterModule.printDivider(style);

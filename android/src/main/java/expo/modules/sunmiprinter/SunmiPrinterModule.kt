@@ -27,6 +27,19 @@ class SunmiPrinterModule : Module() {
     }
   }
 
+  // Verified via decompiled printerx 1.0.20: QueryApi.getInfo(PrinterInfo.PAPER) returns
+  // the paper width in print dots as a string ("576" for 80mm, "384" for 58mm, "" if
+  // unknown) — this is the same unit Format.width/TextStyle.setWidth() use throughout the
+  // SDK's render/format classes. Falls back to 384 (the narrower, more common kiosk width)
+  // if the query fails or the printer doesn't report it.
+  private fun queryPaperWidthDots(p: Printer): Int {
+    return try {
+      p.queryApi().getInfo(com.sunmi.printerx.enums.PrinterInfo.PAPER).toIntOrNull() ?: 384
+    } catch (e: Exception) {
+      384
+    }
+  }
+
   override fun definition() = ModuleDefinition {
     Name("SunmiPrinter")
 
@@ -101,6 +114,38 @@ class SunmiPrinterModule : Module() {
         }
       } catch (e: Exception) {
         promise.reject("PRINT_ERROR", "Error line wrap: ${e.message}", e)
+      }
+    }
+
+    // Single-line two-column layout (e.g. item name + price) using LineApi.printTexts,
+    // instead of two separate printText calls — real column widths computed from the
+    // printer's actual reported paper width rather than a guessed character count.
+    AsyncFunction("printRow") { left: String, right: String, boldLeft: Boolean?, promise: Promise ->
+      try {
+        if (!isInitialized || printer == null) {
+          promise.reject("NOT_INITIALIZED", "Printer not initialized", null)
+          return@AsyncFunction
+        }
+
+        printer?.let { p ->
+          val paperWidth = queryPaperWidthDots(p)
+          val leftWidth = (paperWidth * 0.6).toInt()
+          val rightWidth = paperWidth - leftWidth
+
+          val leftStyle = com.sunmi.printerx.style.TextStyle.getStyle()
+            .setAlign(com.sunmi.printerx.enums.Align.LEFT)
+            .setWidth(leftWidth)
+          if (boldLeft == true) leftStyle.enableBold(true)
+
+          val rightStyle = com.sunmi.printerx.style.TextStyle.getStyle()
+            .setAlign(com.sunmi.printerx.enums.Align.RIGHT)
+            .setWidth(rightWidth)
+
+          p.lineApi().printTexts(arrayOf(left, right), intArrayOf(leftWidth, rightWidth), arrayOf(leftStyle, rightStyle))
+          promise.resolve(null)
+        }
+      } catch (e: Exception) {
+        promise.reject("PRINT_ERROR", "Error printing row: ${e.message}", e)
       }
     }
 
