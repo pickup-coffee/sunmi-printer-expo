@@ -18,6 +18,15 @@ class SunmiPrinterModule : Module() {
   private var printer: Printer? = null
   private var isInitialized = false
 
+  private fun alignFromString(align: String?): com.sunmi.printerx.enums.Align {
+    return when (align?.lowercase()) {
+      "left" -> com.sunmi.printerx.enums.Align.LEFT
+      "center" -> com.sunmi.printerx.enums.Align.CENTER
+      "right" -> com.sunmi.printerx.enums.Align.RIGHT
+      else -> com.sunmi.printerx.enums.Align.DEFAULT
+    }
+  }
+
   override fun definition() = ModuleDefinition {
     Name("SunmiPrinter")
 
@@ -41,7 +50,7 @@ class SunmiPrinterModule : Module() {
       }
     }
 
-    AsyncFunction("printText") { text: String, promise: Promise ->
+    AsyncFunction("printText") { text: String, align: String?, bold: Boolean?, promise: Promise ->
       try {
         if (!isInitialized || printer == null) {
           promise.reject("NOT_INITIALIZED", "Printer not initialized. Call initPrinter first.", null)
@@ -49,7 +58,9 @@ class SunmiPrinterModule : Module() {
         }
 
         printer?.let { p ->
-          p.lineApi().printText(text, com.sunmi.printerx.style.TextStyle.getStyle())
+          val style = com.sunmi.printerx.style.TextStyle.getStyle().setAlign(alignFromString(align))
+          if (bold == true) style.enableBold(true)
+          p.lineApi().printText(text, style)
           promise.resolve(null)
         }
       } catch (e: Exception) {
@@ -57,7 +68,7 @@ class SunmiPrinterModule : Module() {
       }
     }
 
-    AsyncFunction("printTextWithSize") { text: String, size: Int, promise: Promise ->
+    AsyncFunction("printTextWithSize") { text: String, size: Int, align: String?, bold: Boolean?, promise: Promise ->
       try {
         if (!isInitialized || printer == null) {
           promise.reject("NOT_INITIALIZED", "Printer not initialized", null)
@@ -65,7 +76,11 @@ class SunmiPrinterModule : Module() {
         }
 
         printer?.let { p ->
-          p.lineApi().printText(text, com.sunmi.printerx.style.TextStyle.getStyle().setTextSize(size))
+          val style = com.sunmi.printerx.style.TextStyle.getStyle()
+            .setTextSize(size)
+            .setAlign(alignFromString(align))
+          if (bold == true) style.enableBold(true)
+          p.lineApi().printText(text, style)
           promise.resolve(null)
         }
       } catch (e: Exception) {
@@ -86,6 +101,48 @@ class SunmiPrinterModule : Module() {
         }
       } catch (e: Exception) {
         promise.reject("PRINT_ERROR", "Error line wrap: ${e.message}", e)
+      }
+    }
+
+    // Real ESC/POS-style rule (unlike lineWrap, which is blank spacing) — verified against
+    // the printerx 1.0.20 AAR's DividingLine enum (EMPTY/SOLID/DOTTED).
+    AsyncFunction("printDivider") { style: String?, promise: Promise ->
+      try {
+        if (!isInitialized || printer == null) {
+          promise.reject("NOT_INITIALIZED", "Printer not initialized", null)
+          return@AsyncFunction
+        }
+
+        val dividingLine = when (style?.lowercase()) {
+          "dotted" -> com.sunmi.printerx.enums.DividingLine.DOTTED
+          else -> com.sunmi.printerx.enums.DividingLine.SOLID
+        }
+
+        printer?.let { p ->
+          p.lineApi().printDividingLine(dividingLine, 30)
+          promise.resolve(null)
+        }
+      } catch (e: Exception) {
+        promise.reject("PRINT_ERROR", "Error printing divider: ${e.message}", e)
+      }
+    }
+
+    // Verified against printerx 1.0.20's QueryApi.getStatus() -> Status enum
+    // (READY, ERR_PAPER_OUT, ERR_COVER, OFFLINE, etc.) — returns the raw enum name
+    // so JS can branch on it without duplicating the SDK's status list here.
+    AsyncFunction("queryPrinterStatus") { promise: Promise ->
+      try {
+        if (!isInitialized || printer == null) {
+          promise.reject("NOT_INITIALIZED", "Printer not initialized", null)
+          return@AsyncFunction
+        }
+
+        printer?.let { p ->
+          val status = p.queryApi().getStatus()
+          promise.resolve(status.name)
+        }
+      } catch (e: Exception) {
+        promise.reject("QUERY_ERROR", "Error querying printer status: ${e.message}", e)
       }
     }
 

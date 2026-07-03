@@ -10,6 +10,10 @@ export interface PrintTextOptions {
   bold?: boolean;
 }
 
+// NOTE: the following types are not yet wired to any exported function in
+// index.ts (barcode/QR/image printing still use fixed, hardcoded styling on
+// the native side) — kept as a reference for future work, not a working API.
+
 /**
  * Opciones para configurar la impresión de códigos de barras
  */
@@ -45,29 +49,10 @@ export interface ImageOptions {
 }
 
 /**
- * Información del estado de la impresora
+ * Resultado de queryPrinterStatus() — el nombre crudo del enum Status del SDK
+ * de Sunmi (p.ej. 'READY', 'ERR_PAPER_OUT', 'ERR_COVER', 'OFFLINE', 'COMM').
+ * Ver com.sunmi.printerx.enums.Status en printerx para la lista completa.
  */
-export interface PrinterStatus {
-  /** Si la impresora está conectada */
-  connected: boolean;
-  /** Si hay papel disponible */
-  paperAvailable: boolean;
-  /** Temperatura de la impresora */
-  temperature?: number;
-  /** Mensaje de estado */
-  statusMessage?: string;
+export interface PrinterStatusResult {
+  status: string;
 }
-
-/**
- * Eventos que puede emitir la impresora
- */
-export type PrinterEvent = 
-  | 'paperOut'
-  | 'overHeat'
-  | 'printerReady'
-  | 'printerError';
-
-/**
- * Callback para eventos de la impresora
- */
-export type PrinterEventCallback = (event: PrinterEvent, data?: any) => void;
